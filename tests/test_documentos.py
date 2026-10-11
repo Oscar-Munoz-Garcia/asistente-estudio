@@ -49,3 +49,13 @@ def test_crear_con_titulo_corto_da_422(client):
 def test_crear_sin_contenido_da_422(client):
     malo = {"titulo": "Titulo valido", "asignatura": "Programacion"}
     assert client.post("/documentos", json=malo).status_code == 422
+
+
+def test_buscar_devuelve_el_fragmento_relevante(client):
+    r = client.get("/buscar", params={"q": "matrices"})
+    assert r.status_code == 200
+    assert r.json()[0]["documento_id"] == 2
+
+
+def test_buscar_con_consulta_demasiado_corta_da_422(client):
+    assert client.get("/buscar", params={"q": "a"}).status_code == 422
