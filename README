@@ -3,3 +3,21 @@
 API que permite subir apuntes y, más adelante, hacerles preguntas con IA.
 
 Proyecto de aprendizaje: FastAPI, Git, Docker y RAG.
+
+
+## Cómo ejecutarlo
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+fastapi dev app/main.py
+```
+
+Documentación interactiva en http://127.0.0.1:8000/docs
+
+## Tests
+
+```bash
+pytest
+```
