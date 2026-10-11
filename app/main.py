@@ -1,7 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app import storage
+from app import rag, storage
 
 app = FastAPI(title="Asistente de estudio")
 
@@ -45,3 +45,7 @@ def crear_documento(nuevo: DocumentoNuevo):
     documentos.append(documento)
     storage.guardar(documentos)
     return documento
+
+@app.get("/buscar")
+def buscar(q: str = Query(min_length=2), max_resultados: int = Query(3, ge=1, le=10)):
+    return rag.buscar(q, storage.cargar(), max_resultados)
