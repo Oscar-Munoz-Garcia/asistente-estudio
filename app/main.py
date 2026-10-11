@@ -1,7 +1,9 @@
+from typing import Literal
+
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app import rag, storage
+from app import embeddings, rag, semantica, storage
 
 app = FastAPI(title="Asistente de estudio")
 
@@ -47,5 +49,12 @@ def crear_documento(nuevo: DocumentoNuevo):
     return documento
 
 @app.get("/buscar")
-def buscar(q: str = Query(min_length=2), max_resultados: int = Query(3, ge=1, le=10)):
-    return rag.buscar(q, storage.cargar(), max_resultados)
+def buscar(
+    q: str = Query(min_length=2),
+    max_resultados: int = Query(3, ge=1, le=10),
+    modo: Literal["palabras", "significado"] = "palabras",
+):
+    documentos = storage.cargar()
+    if modo == "significado":
+        return semantica.buscar_semantico(q, documentos, embeddings.embeber, max_resultados)
+    return rag.buscar(q, documentos, max_resultados)

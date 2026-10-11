@@ -21,3 +21,11 @@ Documentación interactiva en http://127.0.0.1:8000/docs
 ```bash
 pytest
 ```
+
+
+
+## Búsqueda por significado
+
+`GET /buscar?q=...&modo=significado` usa embeddings locales (modelo multilingüe
+de ~220 MB). La primera vez descarga el modelo, así que tarda; las siguientes son rápidas.
+Con `modo=palabras` (por defecto) busca por palabras clave, sin modelo.
