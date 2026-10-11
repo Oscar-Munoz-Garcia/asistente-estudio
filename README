@@ -1,0 +1,5 @@
+# Asistente de estudio
+
+API que permite subir apuntes y, más adelante, hacerles preguntas con IA.
+
+Proyecto de aprendizaje: FastAPI, Git, Docker y RAG.
