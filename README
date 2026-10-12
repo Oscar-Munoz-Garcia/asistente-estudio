@@ -29,3 +29,12 @@ pytest
 `GET /buscar?q=...&modo=significado` usa embeddings locales (modelo multilingüe
 de ~220 MB). La primera vez descarga el modelo, así que tarda; las siguientes son rápidas.
 Con `modo=palabras` (por defecto) busca por palabras clave, sin modelo.
+
+
+## Preguntar a tus apuntes
+
+`POST /preguntar` con `{"pregunta": "..."}` busca los fragmentos más relevantes
+y pide a un modelo de lenguaje (Groq) que responda solo con ellos, citando las fuentes.
+
+Necesitas una clave gratuita de Groq en un archivo `.env` (copia `.env.example`).
+**Nunca subas `.env` a Git.**

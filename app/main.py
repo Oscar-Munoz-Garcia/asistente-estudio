@@ -1,9 +1,10 @@
+import os
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app import embeddings, rag, semantica, storage
+from app import embeddings, llm, qa, rag, semantica, storage
 
 app = FastAPI(title="Asistente de estudio")
 
@@ -16,6 +17,21 @@ class DocumentoNuevo(BaseModel):
 
 class Documento(DocumentoNuevo):
     id: int
+
+class Pregunta(BaseModel):
+    pregunta: str = Field(min_length=3, max_length=500)
+
+
+class Fuente(BaseModel):
+    documento_id: int
+    titulo: str
+    fragmento: int
+    puntuacion: float
+
+
+class Respuesta(BaseModel):
+    respuesta: str
+    fuentes: list[Fuente]    
 
 
 @app.get("/health")
@@ -58,3 +74,13 @@ def buscar(
     if modo == "significado":
         return semantica.buscar_semantico(q, documentos, embeddings.embeber, max_resultados)
     return rag.buscar(q, documentos, max_resultados)
+
+@app.post("/preguntar", response_model=Respuesta)
+def preguntar(datos: Pregunta):
+    umbral = float(os.getenv("UMBRAL_SIMILITUD", "0.3"))
+    try:
+        return qa.responder_pregunta(
+            datos.pregunta, storage.cargar(), embeddings.embeber, llm.responder, umbral=umbral
+        )
+    except llm.ErrorLLM as e:
+        raise HTTPException(status_code=503, detail=str(e))
