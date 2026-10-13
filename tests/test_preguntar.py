@@ -82,3 +82,35 @@ def test_endpoint_da_503_si_falla_el_modelo(client, monkeypatch):
     r = client.post("/preguntar", json={"pregunta": "ordenadores"})
     assert r.status_code == 503
     assert "sin conexion" in r.json()["detail"]
+
+
+def test_modo_palabras_no_necesita_embeddings():
+    def embeber_prohibido(textos):
+        raise AssertionError("En modo palabras no se debe cargar el modelo de embeddings")
+
+    r = qa.responder_pregunta(
+        "dispositivos", DOCS, embeber_prohibido, lambda s, m: "Respuesta [1]", modo="palabras"
+    )
+    assert r["respuesta"] == "Respuesta [1]"
+    assert r["fuentes"][0]["documento_id"] == 1
+
+
+def test_modo_palabras_sin_coincidencias_no_llama_al_modelo():
+    llamadas = []
+    r = qa.responder_pregunta(
+        "tortilla", DOCS, embeber_falso, lambda s, m: llamadas.append(1), modo="palabras"
+    )
+    assert r["respuesta"] == qa.SIN_RESPUESTA
+    assert llamadas == []
+
+
+def test_modo_desconocido_da_error_claro():
+    with pytest.raises(ValueError):
+        qa.responder_pregunta("hola", DOCS, embeber_falso, lambda s, m: "x", modo="magia")
+
+
+def test_endpoint_usa_modo_palabras_si_se_configura(client, monkeypatch):
+    monkeypatch.setenv("MODO_BUSQUEDA", "palabras")
+    r = client.post("/preguntar", json={"pregunta": "dispositivos"})
+    assert r.status_code == 200
+    assert r.json()["fuentes"][0]["documento_id"] == 1

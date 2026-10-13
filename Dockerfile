@@ -14,6 +14,8 @@ COPY app ./app
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+  CMD python -c "import os, urllib.request; urllib.request.urlopen('http://localhost:%s/health' % os.getenv('PORT', '8000'))" || exit 1
 
-CMD ["fastapi", "run", "app/main.py", "--port", "8000"]
+# El puerto lo da la variable PORT (la nube la define); en local usa el 8000.
+# "exec" hace que la API reciba las senales de parada y se apague limpiamente.
+CMD ["sh", "-c", "exec fastapi run app/main.py --port ${PORT:-8000}"]
