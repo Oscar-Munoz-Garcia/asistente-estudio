@@ -1,0 +1,14 @@
+[
+  {
+    "pregunta": "¿Qué es un algoritmo voraz?",
+    "respuesta_ideal": "Es un método que en cada paso toma la mejor decisión local sin pensar en el futuro, buscando el óptimo global."
+  },
+  {
+    "pregunta": "¿Cuál es la principal desventaja de un algoritmo voraz?",
+    "respuesta_ideal": "Que no siempre garantiza encontrar la solución óptima global para todos los problemas."
+  },
+  {
+    "pregunta": "¿Qué elementos componen el esquema de un algoritmo voraz?",
+    "respuesta_ideal": "Un conjunto de candidatos, una función de selección, una función de factibilidad, una función objetivo y una función solución."
+  }
+]

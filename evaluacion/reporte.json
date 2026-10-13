@@ -1,0 +1,21 @@
+{
+  "media_fidelidad": 3.6666666666666665,
+  "media_relevancia": 3.6666666666666665,
+  "detalle": [
+    {
+      "pregunta": "¿Qué es un algoritmo voraz?",
+      "fidelidad": 5,
+      "relevancia": 5
+    },
+    {
+      "pregunta": "¿Cuál es la principal desventaja de un algoritmo voraz?",
+      "fidelidad": 5,
+      "relevancia": 5
+    },
+    {
+      "pregunta": "¿Qué elementos componen el esquema de un algoritmo voraz?",
+      "fidelidad": 1,
+      "relevancia": 1
+    }
+  ]
+}
