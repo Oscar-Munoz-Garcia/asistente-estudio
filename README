@@ -47,3 +47,18 @@ docker run -d --name asistente -p 8001:8000 --env-file .env -v asistente-datos:/
 ```
 
 Documentación en http://127.0.0.1:8001/docs. La clave se pasa con `--env-file`; nunca se mete en la imagen.
+
+
+
+## Evaluación del Sistema RAG (*LLM-as-a-Judge*)
+
+Para medir la calidad del RAG y prevenir alucinaciones, el proyecto cuenta con un pipeline de evaluación objetiva ejecutado sobre un dataset de prueba (`evaluacion/dataset.json`).
+
+| Métrica | Definición | Puntuación Media |
+| :--- | :--- | :---: |
+| **Fidelidad (*Faithfulness*)** | Grado en que la respuesta se apoya exclusivamente en el texto recuperado | **3.67 / 5.0** |
+| **Relevancia (*Relevance*)** | Grado en que la respuesta satisface directamente la consulta planteada | **3.67 / 5.0** |
+
+*Ejecución de la evaluación:*
+```bash
+python evaluacion/evaluar.py
