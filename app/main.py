@@ -1,12 +1,12 @@
 import os
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app import embeddings, llm, qa, rag, semantica, storage
+from app import embeddings, llm, qa, rag, semantica, seguridad, storage
 
-app = FastAPI(title="Asistente de estudio")
+app = FastAPI(title="Asistente de estudio", dependencies=[Depends(seguridad.exigir_token)])
 
 
 class DocumentoNuevo(BaseModel):
@@ -76,11 +76,16 @@ def buscar(
     return rag.buscar(q, documentos, max_resultados)
 
 @app.post("/preguntar", response_model=Respuesta)
+
+
+@app.post("/preguntar", response_model=Respuesta)
 def preguntar(datos: Pregunta):
     umbral = float(os.getenv("UMBRAL_SIMILITUD", "0.3"))
+    modo = os.getenv("MODO_BUSQUEDA", "significado")
     try:
         return qa.responder_pregunta(
-            datos.pregunta, storage.cargar(), embeddings.embeber, llm.responder, umbral=umbral
+            datos.pregunta, storage.cargar(), embeddings.embeber, llm.responder,
+            umbral=umbral, modo=modo,
         )
     except llm.ErrorLLM as e:
         raise HTTPException(status_code=503, detail=str(e))
