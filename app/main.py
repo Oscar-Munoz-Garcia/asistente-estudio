@@ -1,8 +1,11 @@
 import os
+import io
 from typing import Literal
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, File, UploadFile, Form
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
+from pypdf import PdfReader
 
 from app import embeddings, llm, qa, rag, semantica, seguridad, storage
 
@@ -75,8 +78,6 @@ def buscar(
         return semantica.buscar_semantico(q, documentos, embeddings.embeber, max_resultados)
     return rag.buscar(q, documentos, max_resultados)
 
-@app.post("/preguntar", response_model=Respuesta)
-
 
 @app.post("/preguntar", response_model=Respuesta)
 def preguntar(datos: Pregunta):
@@ -89,3 +90,60 @@ def preguntar(datos: Pregunta):
         )
     except llm.ErrorLLM as e:
         raise HTTPException(status_code=503, detail=str(e))
+
+
+@app.post("/documentos/pdf", status_code=201)
+async def subir_pdf(
+    file: UploadFile = File(...),
+    asignatura: str = Form("General") # Permite clasificar el PDF
+):
+    if not file.filename.endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="El archivo debe ser un PDF")
+    
+    try:
+        # Leemos el archivo en memoria
+        contenido = await file.read()
+        lector = PdfReader(io.BytesIO(contenido))
+        
+        # Extraemos el texto de todas las páginas
+        texto_extraido = ""
+        for pagina in lector.pages:
+            texto = pagina.extract_text()
+            if texto:
+                texto_extraido += texto + "\n"
+                
+        if not texto_extraido.strip():
+            raise HTTPException(status_code=400, detail="No se pudo extraer texto del PDF (podría ser una imagen escaneada)")
+
+        # Guardamos el documento usando la misma lógica de "crear_documento"
+        documentos = storage.cargar()
+        nuevo_id = max((d["id"] for d in documentos), default=0) + 1
+        
+        # Usamos el nombre del archivo (quitándole el .pdf) como título
+        titulo_limpio = file.filename[:-4] if file.filename.endswith('.pdf') else file.filename
+        
+        nuevo_doc = {
+            "id": nuevo_id,
+            "titulo": titulo_limpio,
+            "asignatura": asignatura,
+            "contenido": texto_extraido.strip()
+        }
+        
+        documentos.append(nuevo_doc)
+        storage.guardar(documentos)
+        
+        return {
+            "mensaje": f"PDF procesado. Título: '{titulo_limpio}'", 
+            "documento_id": nuevo_id,
+            "caracteres_extraidos": len(texto_extraido)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al leer el PDF: {str(e)}")
+
+
+@app.get("/", include_in_schema=False)
+async def inicio():
+    with open("app/index.html", "r", encoding="utf-8") as f:
+        html_content = f.read()
+    return HTMLResponse(content=html_content, status_code=200)
