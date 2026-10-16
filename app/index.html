@@ -1,89 +1,317 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asistente de Estudio AI</title>
+    <title>NotebookAI - Asistente de Estudio RAG</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#1e1b4b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Scrollbar personalizada para tema oscuro */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #18181b; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+    </style>
 </head>
-<body class="bg-gray-100 font-sans p-8">
-    <div class="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6">📚 Mi Asistente de Estudio</h1>
-        
-        <!-- Configuración de Seguridad -->
-        <div class="mb-6 p-4 bg-blue-50 rounded border border-blue-200">
-            <label class="block text-sm font-bold text-gray-700 mb-2">Tu API Token de acceso:</label>
-            <input type="password" id="api-key" placeholder="Pega tu token aquí..." class="w-full p-2 border rounded">
-        </div>
+<body class="bg-zinc-950 text-zinc-100 font-sans h-screen flex flex-col overflow-hidden antialiased">
 
-        <!-- Subida de PDF -->
-        <div class="mb-8">
-            <h2 class="text-xl font-bold mb-3">1. Sube tus apuntes (PDF)</h2>
-            <div class="flex gap-4">
-                <input type="file" id="pdf-file" accept=".pdf" class="border p-2 rounded w-full">
-                <button onclick="subirPDF()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">Subir</button>
+    <!-- Top Header Bar -->
+    <header class="h-14 border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <i data-lucide="brain-circuit" class="w-5 h-5 text-white"></i>
             </div>
-            <p id="upload-status" class="text-sm mt-2 text-gray-600"></p>
+            <div>
+                <h1 class="font-bold text-sm tracking-wide text-zinc-100 flex items-center gap-2">
+                    NotebookAI <span class="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-semibold border border-indigo-500/30">RAG Studio</span>
+                </h1>
+            </div>
         </div>
 
-        <hr class="my-6">
-
-        <!-- Zona de Preguntas -->
-        <div>
-            <h2 class="text-xl font-bold mb-3">2. Haz una pregunta</h2>
-            <textarea id="pregunta" rows="3" class="w-full p-2 border rounded mb-3" placeholder="Ej: ¿Qué es la mitosis?"></textarea>
-            <button onclick="preguntar()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition w-full font-bold">Preguntar al Asistente</button>
+        <div class="flex items-center gap-4">
+            <!-- Selector/Input del Token de Acceso -->
+            <div class="relative flex items-center">
+                <i data-lucide="key-round" class="w-4 h-4 text-zinc-400 absolute left-3"></i>
+                <input type="password" id="api-key" placeholder="API Token (X-API-Key)..." 
+                    class="bg-zinc-800/80 border border-zinc-700/60 rounded-lg pl-9 pr-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition w-64">
+            </div>
+            <a href="/docs" target="_blank" class="text-xs text-zinc-400 hover:text-indigo-400 flex items-center gap-1 transition">
+                <i data-lucide="file-text" class="w-3.5 h-3.5"></i> FastAPI Docs
+            </a>
         </div>
+    </header>
 
-        <!-- Respuesta -->
-        <div class="mt-6">
-            <h3 class="font-bold text-gray-700 mb-2">Respuesta:</h3>
-            <div id="respuesta" class="bg-gray-50 p-4 border rounded min-h-[100px] whitespace-pre-wrap"></div>
-        </div>
+    <!-- Main Workspace Layout (NotebookLM Style) -->
+    <div class="flex-1 flex overflow-hidden">
+
+        <!-- LEFT SIDEBAR: Fuentes & Documentos -->
+        <aside class="w-80 border-r border-zinc-800 bg-zinc-900/50 flex flex-col shrink-0">
+            <!-- Header Sección Fuentes -->
+            <div class="p-4 border-b border-zinc-800/80 flex items-center justify-between">
+                <div class="flex items-center gap-2 text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+                    <i data-lucide="folder-open" class="w-4 h-4 text-indigo-400"></i>
+                    <span>Fuentes de Estudio</span>
+                </div>
+                <button onclick="cargarDocumentos()" title="Actualizar fuentes" class="text-zinc-400 hover:text-white p-1 rounded transition">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+
+            <!-- Upload PDF Dropzone Card -->
+            <div class="p-4 border-b border-zinc-800/80">
+                <div class="bg-zinc-800/40 border border-dashed border-zinc-700 hover:border-indigo-500/60 rounded-xl p-4 transition text-center group">
+                    <i data-lucide="file-up" class="w-8 h-8 text-zinc-500 group-hover:text-indigo-400 mx-auto mb-2 transition"></i>
+                    <p class="text-xs text-zinc-300 font-medium mb-1">Añade tus apuntes (PDF)</p>
+                    <p class="text-[10px] text-zinc-500 mb-3">Extracción + Embeddings Vectoriales Qdrant</p>
+                    
+                    <input type="file" id="pdf-file" accept=".pdf" class="hidden" onchange="actualizarNombreArchivo()">
+                    <label for="pdf-file" id="file-label" class="cursor-pointer inline-block text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-lg border border-zinc-700 mb-2 transition truncate max-w-[200px]">
+                        Seleccionar PDF
+                    </label>
+
+                    <button onclick="subirPDF()" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs py-2 px-3 rounded-lg transition shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2">
+                        <i data-lucide="upload" class="w-3.5 h-3.5"></i> Procesar e Indizar
+                    </button>
+                </div>
+                <p id="upload-status" class="text-[11px] mt-2 text-zinc-400 min-h-[16px] font-mono"></p>
+            </div>
+
+            <!-- Lista de Documentos Cargados -->
+            <div class="flex-1 overflow-y-auto p-4">
+                <p class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-3">Documentos Indizados</p>
+                <div id="lista-documentos" class="space-y-2">
+                    <p class="text-xs text-zinc-500 italic">Introduce tu API Token para cargar los apuntes...</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CENTER AREA: Chat Studio & Studio Prompts -->
+        <main class="flex-1 flex flex-col bg-zinc-950 relative">
+
+            <!-- Chat Message Feed -->
+            <div id="chat-feed" class="flex-1 overflow-y-auto p-6 space-y-6">
+                <!-- Welcome Message -->
+                <div class="max-w-2xl mx-auto bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 text-center space-y-3">
+                    <div class="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center mx-auto border border-indigo-500/20">
+                        <i data-lucide="sparkles" class="w-6 h-6 text-indigo-400"></i>
+                    </div>
+                    <h2 class="text-lg font-bold text-zinc-100">¿En qué nos enfocamos hoy?</h2>
+                    <p class="text-xs text-zinc-400 max-w-md mx-auto">Sube tus apuntes en PDF. Tu asistente extraerá los datos, generará embeddings vectoriales en Qdrant y responderá con citas exactas.</p>
+                    
+                    <!-- Quick Study Suggestions Chips -->
+                    <div class="flex flex-wrap justify-center gap-2 pt-2">
+                        <button onclick="usarPromptRapido('Haz un resumen ejecutivo de los conceptos clave de mis apuntes.')" 
+                            class="text-xs bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700/70 text-zinc-300 px-3 py-1.5 rounded-full transition flex items-center gap-1.5">
+                            <i data-lucide="file-text" class="w-3.5 h-3.5 text-indigo-400"></i> Resumen de conceptos
+                        </button>
+                        <button onclick="usarPromptRapido('¿Cuáles son las preguntas de examen más probables basadas en estos documentos?')" 
+                            class="text-xs bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700/70 text-zinc-300 px-3 py-1.5 rounded-full transition flex items-center gap-1.5">
+                            <i data-lucide="help-circle" class="w-3.5 h-3.5 text-emerald-400"></i> Preguntas de examen
+                        </button>
+                        <button onclick="usarPromptRapido('Explícame el tema principal con ejemplos sencillos y estructurados.')" 
+                            class="text-xs bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700/70 text-zinc-300 px-3 py-1.5 rounded-full transition flex items-center gap-1.5">
+                            <i data-lucide="lightbulb" class="w-3.5 h-3.5 text-amber-400"></i> Explicación sencilla
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Console -->
+            <div class="p-4 border-t border-zinc-800/80 bg-zinc-900/40">
+                <div class="max-w-3xl mx-auto relative">
+                    <textarea id="pregunta" rows="2" 
+                        placeholder="Pregunta lo que quieras sobre tus apuntes (ej. ¿Qué es un algoritmo voraz?)..." 
+                        class="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl pl-4 pr-12 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition resize-none"></textarea>
+                    
+                    <button onclick="preguntar()" 
+                        class="absolute right-3 bottom-3 bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-lg transition shadow-lg shadow-indigo-600/30 flex items-center justify-center">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div class="flex justify-between items-center max-w-3xl mx-auto mt-2 text-[10px] text-zinc-500 px-1">
+                    <span>Motor RAG: FastEmbed Local + Qdrant DB + Groq LLM</span>
+                    <span id="rag-status">Listo para consultar</span>
+                </div>
+            </div>
+
+        </main>
     </div>
 
+    <!-- Logic Javascript Integration -->
     <script>
-        // Funciones JavaScript para conectar con tu API FastAPI
+        // Inicializar iconos de Lucide
+        lucide.createIcons();
+
+        // Cargar token guardado en localStorage si existe
+        document.addEventListener("DOMContentLoaded", () => {
+            const tokenGuardado = localStorage.getItem("notebook_api_token");
+            if (tokenGuardado) {
+                document.getElementById('api-key').value = tokenGuardado;
+                cargarDocumentos();
+            }
+        });
+
+        // Guardar token al escribir
+        document.getElementById('api-key').addEventListener('input', (e) => {
+            localStorage.setItem("notebook_api_token", e.target.value.trim());
+            if (e.target.value.trim().length > 3) {
+                cargarDocumentos();
+            }
+        });
+
+        function actualizarNombreArchivo() {
+            const input = document.getElementById('pdf-file');
+            const label = document.getElementById('file-label');
+            if (input.files.length > 0) {
+                label.innerText = input.files[0].name;
+            }
+        }
+
+        function usarPromptRapido(texto) {
+            document.getElementById('pregunta').value = texto;
+            preguntar();
+        }
+
+        async function cargarDocumentos() {
+            const token = document.getElementById('api-key').value;
+            const contenedor = document.getElementById('lista-documentos');
+
+            if (!token) {
+                contenedor.innerHTML = '<p class="text-xs text-zinc-500 italic">Introduce tu API Token arriba...</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch('/documentos', {
+                    headers: { 'X-API-Key': token }
+                });
+
+                if (response.ok) {
+                    const docs = await response.json();
+                    if (docs.length === 0) {
+                        contenedor.innerHTML = '<p class="text-xs text-zinc-500 italic">No hay documentos cargados todavía.</p>';
+                        return;
+                    }
+
+                    contenedor.innerHTML = docs.map(doc => `
+                        <div class="bg-zinc-800/50 border border-zinc-700/50 rounded-lg p-2.5 flex items-start gap-2.5">
+                            <i data-lucide="file-text" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i>
+                            <div class="overflow-hidden">
+                                <p class="text-xs font-medium text-zinc-200 truncate" title="${doc.titulo}">${doc.titulo}</p>
+                                <div class="flex items-center gap-2 mt-1 text-[10px] text-zinc-400">
+                                    <span class="bg-zinc-700/60 px-1.5 py-0.5 rounded text-zinc-300">${doc.asignatura || 'General'}</span>
+                                    <span>ID: ${doc.id}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                    lucide.createIcons();
+                } else {
+                    contenedor.innerHTML = '<p class="text-xs text-rose-400 font-medium">⚠️ Error de autenticación (Token no válido)</p>';
+                }
+            } catch (err) {
+                contenedor.innerHTML = '<p class="text-xs text-zinc-500">Error conectando con la API</p>';
+            }
+        }
+
         async function subirPDF() {
             const token = document.getElementById('api-key').value;
             const fileInput = document.getElementById('pdf-file');
             const status = document.getElementById('upload-status');
 
-            if (!token) { status.innerHTML = "⚠️ Falta el token"; return; }
+            if (!token) { status.innerHTML = "⚠️ Falta el token de acceso"; return; }
             if (fileInput.files.length === 0) { status.innerHTML = "⚠️ Selecciona un archivo PDF"; return; }
 
             const formData = new FormData();
             formData.append("file", fileInput.files[0]);
+            formData.append("asignatura", "General");
 
-            status.innerHTML = "⏳ Subiendo y procesando... esto puede tardar un poco.";
+            status.className = "text-[11px] mt-2 text-indigo-400 min-h-[16px] font-mono animate-pulse";
+            status.innerHTML = "⏳ Extrayendo texto y generando vectores en Qdrant...";
             
             try {
                 const response = await fetch('/documentos/pdf', {
                     method: 'POST',
-                    headers: { 'X-API-Key': token }, // Cambia esto si tu cabecera se llama distinto
+                    headers: { 'X-API-Key': token },
                     body: formData
                 });
                 
                 const data = await response.json();
                 if (response.ok) {
-                    status.innerHTML = `✅ ¡Éxito! ${data.mensaje}`;
+                    status.className = "text-[11px] mt-2 text-emerald-400 min-h-[16px] font-mono";
+                    status.innerHTML = `✅ ¡Procesado! ID: ${data.documento_id} (${data.caracteres_extraidos} letras)`;
+                    cargarDocumentos(); // Recargar lista
                 } else {
-                    status.innerHTML = `❌ Error: ${data.detail}`;
+                    status.className = "text-[11px] mt-2 text-rose-400 min-h-[16px] font-mono";
+                    status.innerHTML = `❌ Error: ${data.detail || 'Fallo en la subida'}`;
                 }
             } catch (error) {
-                status.innerHTML = "❌ Error de conexión al servidor";
+                status.className = "text-[11px] mt-2 text-rose-400 min-h-[16px] font-mono";
+                status.innerHTML = "❌ Error de conexión con el servidor";
             }
         }
 
         async function preguntar() {
             const token = document.getElementById('api-key').value;
-            const pregunta = document.getElementById('pregunta').value;
-            const respuestaDiv = document.getElementById('respuesta');
+            const preguntaInput = document.getElementById('pregunta');
+            const preguntaTexto = preguntaInput.value.trim();
+            const feed = document.getElementById('chat-feed');
+            const ragStatus = document.getElementById('rag-status');
 
-            if (!token) { respuestaDiv.innerHTML = "⚠️ Falta el token"; return; }
-            if (!pregunta) { respuestaDiv.innerHTML = "⚠️ Escribe una pregunta"; return; }
+            if (!token) { alert("Ingresa tu API Token arriba"); return; }
+            if (!preguntaTexto) return;
 
-            respuestaDiv.innerHTML = "Pensando... 🧠";
+            // 1. Renderizar mensaje del usuario
+            const userMsgHTML = `
+                <div class="flex justify-end">
+                    <div class="bg-indigo-600 text-white rounded-2xl rounded-tr-none px-4 py-3 max-w-xl text-sm shadow-md">
+                        <p>${preguntaTexto}</p>
+                    </div>
+                </div>
+            `;
+            feed.insertAdjacentHTML('beforeend', userMsgHTML);
+            preguntaInput.value = '';
+            feed.scrollTop = feed.scrollHeight;
+
+            // 2. Renderizar skeleton de cargando AI
+            const loadingId = 'loading-' + Date.now();
+            const loadingHTML = `
+                <div id="${loadingId}" class="flex gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                        <i data-lucide="bot" class="w-4 h-4 text-indigo-400"></i>
+                    </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl rounded-tl-none p-4 max-w-2xl text-sm text-zinc-300 space-y-2">
+                        <div class="flex items-center gap-2 text-xs text-indigo-400 font-mono">
+                            <span class="animate-spin">🌀</span> Recuperando vectores en Qdrant y razonando con Groq...
+                        </div>
+                    </div>
+                </div>
+            `;
+            feed.insertAdjacentHTML('beforeend', loadingHTML);
+            lucide.createIcons();
+            feed.scrollTop = feed.scrollHeight;
+            ragStatus.innerText = "Consultando base vectorial...";
 
             try {
                 const response = await fetch('/preguntar', {
@@ -92,18 +320,75 @@
                         'X-API-Key': token,
                         'Content-Type': 'application/json' 
                     },
-                    body: JSON.stringify({ pregunta: pregunta })
+                    body: JSON.stringify({ pregunta: preguntaTexto })
                 });
 
                 const data = await response.json();
+                document.getElementById(loadingId).remove();
+
                 if (response.ok) {
-                    // Adaptar 'data.respuesta' según cómo devuelve tu API el texto
-                    respuestaDiv.innerHTML = data.respuesta || JSON.stringify(data);
+                    const respuestaTexto = data.respuesta || JSON.stringify(data);
+                    const fuentes = data.fuentes || [];
+
+                    // Renderizar Tarjetas de Fuentes / Citas de NotebookLM
+                    const fuentesHTML = fuentes.length > 0 ? `
+                        <div class="mt-4 pt-3 border-t border-zinc-800/80">
+                            <p class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                <i data-lucide="bookmark" class="w-3 h-3 text-indigo-400"></i> Fuentes Consultadas (${fuentes.length}):
+                            </p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                ${fuentes.map(f => `
+                                    <div class="bg-zinc-950/60 border border-zinc-800 rounded-lg p-2 text-xs">
+                                        <div class="flex items-center justify-between font-medium text-zinc-200">
+                                            <span class="truncate" title="${f.titulo}">${f.titulo}</span>
+                                            <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30">Frag. ${f.fragmento}</span>
+                                        </div>
+                                        <div class="text-[10px] text-zinc-500 mt-1 flex justify-between">
+                                            <span>Doc ID: ${f.documento_id}</span>
+                                            <span class="text-emerald-400 font-mono">Similitud: ${(f.puntuacion * 100).toFixed(0)}%</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : '';
+
+                    const aiMsgHTML = `
+                        <div class="flex gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                                <i data-lucide="sparkles" class="w-4 h-4 text-indigo-400"></i>
+                            </div>
+                            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl rounded-tl-none p-4 max-w-2xl text-sm text-zinc-200 space-y-2 shadow-lg">
+                                <div class="whitespace-pre-wrap leading-relaxed">${respuestaTexto}</div>
+                                ${fuentesHTML}
+                            </div>
+                        </div>
+                    `;
+                    feed.insertAdjacentHTML('beforeend', aiMsgHTML);
+                    ragStatus.innerText = "Respuesta generada con éxito";
                 } else {
-                    respuestaDiv.innerHTML = `❌ Error: ${data.detail}`;
+                    const errorHTML = `
+                        <div class="flex gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/30 flex items-center justify-center shrink-0">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i>
+                            </div>
+                            <div class="bg-zinc-900 border border-rose-900/50 rounded-2xl rounded-tl-none p-4 max-w-2xl text-sm text-rose-300">
+                                <p class="font-semibold">Error al consultar:</p>
+                                <p class="text-xs text-rose-400 mt-1">${data.detail || 'Error desconocido'}</p>
+                            </div>
+                        </div>
+                    `;
+                    feed.insertAdjacentHTML('beforeend', errorHTML);
+                    ragStatus.innerText = "Error en la consulta";
                 }
+
+                lucide.createIcons();
+                feed.scrollTop = feed.scrollHeight;
+
             } catch (error) {
-                respuestaDiv.innerHTML = "❌ Error al contactar con la API";
+                document.getElementById(loadingId).remove();
+                alert("Error de red conectando con la API.");
+                ragStatus.innerText = "Error de conexión";
             }
         }
     </script>
