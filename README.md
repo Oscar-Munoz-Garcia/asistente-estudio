@@ -116,5 +116,9 @@ docker build -t asistente-estudio .
 
 # Ejecutar contenedor vinculando volumen para la persistencia de Qdrant
 docker run -d --name asistente -p 8001:8000 --env-file .env -v asistente-datos:/app/data asistente-estudio
+<<<<<<< HEAD
 ```
 Acceso a la aplicación en contenedor: `http://127.0.0.1:8001/`.
+=======
+Acceso a la aplicación en contenedor: http://127.0.0.1:8001/.
+>>>>>>> c92ee72456487250d10277227aa550a90149cf7a
