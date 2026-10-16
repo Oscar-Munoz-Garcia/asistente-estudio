@@ -39,3 +39,6 @@ def test_tambien_protege_las_escrituras(client):
 def test_sin_token_configurado_la_api_queda_abierta(client, monkeypatch):
     monkeypatch.delenv("API_TOKEN")
     assert client.get("/documentos").status_code == 200
+
+def test_la_pagina_principal_no_necesita_clave(client):
+    assert client.get("/").status_code == 200

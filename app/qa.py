@@ -1,4 +1,4 @@
-from app import rag, semantica
+from app import rag, semantica, vector_store
 
 SISTEMA = (
     "Eres un asistente de estudio. Responde SOLO con la informacion de los fragmentos "
@@ -17,6 +17,7 @@ def responder_pregunta(pregunta, documentos, embeber, generar, max_fragmentos=3,
 
     modo="significado": embeddings (mejor, pero necesita cargar un modelo y mas memoria).
     modo="palabras": busqueda por palabras clave (ligera, ideal para servidores con poca RAM).
+    modo="qdrant": embeddings guardados en la base vectorial (solo se calcula el de la pregunta).
     """
     if modo == "palabras":
         # rag.buscar solo devuelve fragmentos que comparten alguna palabra con la pregunta
@@ -24,10 +25,14 @@ def responder_pregunta(pregunta, documentos, embeber, generar, max_fragmentos=3,
     elif modo == "significado":
         candidatos = semantica.buscar_semantico(pregunta, documentos, embeber, max_fragmentos)
         relevantes = [f for f in candidatos if f["puntuacion"] >= umbral]
+    elif modo == "qdrant":
+        vector = embeber([pregunta])[0]
+        candidatos = vector_store.buscar_similares(vector, max_fragmentos)
+        relevantes = [f for f in candidatos if f["puntuacion"] >= umbral]
     else:
-        raise ValueError(f"MODO_BUSQUEDA debe ser 'palabras' o 'significado', no '{modo}'")
+        raise ValueError(f"MODO_BUSQUEDA debe ser 'palabras', 'significado' o 'qdrant', no '{modo}'")
 
-    # Si nada se parece a la pregunta, ni siquiera llamamos al modelo (ahorra dinero y evita inventos).
+    # Si nada se parece a la pregunta, ni siquiera llamamos al modelo (ahorra cuota y evita inventos).
     if not relevantes:
         return {"respuesta": SIN_RESPUESTA, "fuentes": []}
 
