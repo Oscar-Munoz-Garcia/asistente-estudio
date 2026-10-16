@@ -13,7 +13,7 @@ def exigir_token(request: Request, clave: str | None = Security(cabecera_clave))
     token = os.getenv("API_TOKEN")
     if not token:
         return  # sin token configurado (uso local) la API queda abierta
-    if request.url.path == "/health":
-        return  # el chequeo de salud debe poder consultarse sin clave
+    if request.url.path in ("/health", "/"):
+        return  # el chequeo de salud y la pagina principal no necesitan clave
     if not clave or not secrets.compare_digest(clave, token):
         raise HTTPException(status_code=401, detail="Falta la cabecera X-API-Key o es incorrecta.")

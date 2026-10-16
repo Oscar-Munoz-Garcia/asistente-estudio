@@ -23,6 +23,8 @@ def _cargar_modelo():
 
 def embeber(textos: list[str]) -> np.ndarray:
     """Convierte cada texto en un vector de numeros que representa su significado."""
+    if isinstance(textos, str):
+        raise TypeError("embeber espera una LISTA de textos, no un texto suelto (se recorreria letra a letra)")
     pendientes = [t for t in dict.fromkeys(textos) if t not in _cache]
     if pendientes:
         modelo = _cargar_modelo()
