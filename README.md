@@ -1,3 +1,4 @@
+![Interfaz Web NotebookAI](image.png)
 # NotebookAI: Sistema RAG para Análisis e Indización de Documentos
 
 Sistema de recuperación y generación aumentada (RAG, *Retrieval-Augmented Generation*) diseñado para el procesamiento de documentos académicos y técnicos. Permite la ingesta de archivos PDF, la generación de embeddings vectoriales, el almacenamiento persistente mediante una base de datos vectorial y la síntesis de respuestas mediante un Modelo de Lenguaje de Gran Escala (LLM) con atribución explícita de fuentes.
@@ -33,14 +34,46 @@ Sistema de recuperación y generación aumentada (RAG, *Retrieval-Augmented Gene
 
 ```mermaid
 flowchart TD
-    A[Interfaz Web / Cliente] -->|Petición HTTP / JSON| B[API FastAPI]
-    B -->|Ingesta & Chunking| C[PyPDF + FastEmbed]
-    B -->|Consulta Vectorial| D[Qdrant Vector DB]
+    A["Interfaz Web / Cliente"] -->|Petición HTTP / JSON| B["API FastAPI"]
+    B -->|Ingesta & Chunking| C["PyPDF + FastEmbed"]
+    B -->|Consulta Vectorial| D["Qdrant Vector DB"]
     C -->|Almacenamiento de Vectores| D
-    D -->|Contexto Recuperado| E[Groq LLM Inference]
+    D -->|Contexto Recuperado| E["Groq LLM Inference"]
     E -->|Respuesta + Citas de Fuentes| A
-Evaluación del Sistema RAG (LLM-as-a-Judge)Para auditar la calidad del pipeline RAG de forma objetiva, se implementó un script de evaluación (evaluacion/evaluar.py) sobre un conjunto de datos de prueba (evaluacion/dataset.json). Un LLM actúa como juez evaluando cada par pregunta-respuesta en una escala discreta de 1 a 5.MétricaDefiniciónPuntuación MediaFidelidad (Faithfulness)Grado en que la respuesta se fundamenta estrictamente en el contexto recuperado3.67 / 5.0Relevancia (Relevance)Grado en que la respuesta satisface directamente la consulta realizada3.67 / 5.0Comando de ejecución del pipeline de evaluación:Bashpython evaluacion/evaluar.py
-Stack TecnológicoCore & API Framework: Python 3.11, FastAPI, Pydantic, Uvicorn.Motor RAG & Vector Store: Qdrant Client, FastEmbed, PyPDF, Groq API.Frontend Layer: HTML5, Tailwind CSS, Lucide Icons, Fetch API.DevOps, Testing & Cloud: Docker, GitHub Actions, Pytest, Render.Configuración y Despliegue Local1. Clonar el repositorio e instalar dependenciasBashgit clone [https://github.com/Oscar-Munoz-Garcia/asistente-estudio.git](https://github.com/Oscar-Munoz-Garcia/asistente-estudio.git)
+```
+
+---
+
+## Evaluación del Sistema RAG (*LLM-as-a-Judge*)
+
+Para auditar la calidad del pipeline RAG de forma objetiva, se implementó un script de evaluación (`evaluacion/evaluar.py`) sobre un conjunto de datos de prueba (`evaluacion/dataset.json`). Un LLM actúa como juez evaluando cada par pregunta-respuesta en una escala discreta de 1 a 5.
+
+| Métrica | Definición | Puntuación Media |
+| :--- | :--- | :---: |
+| **Fidelidad (*Faithfulness*)** | Grado en que la respuesta se fundamenta estrictamente en el contexto recuperado | **3.67 / 5.0** |
+| **Relevancia (*Relevance*)** | Grado en que la respuesta satisface directamente la consulta realizada | **3.67 / 5.0** |
+
+*Comando de ejecución del pipeline de evaluación:*
+```bash
+python evaluacion/evaluar.py
+```
+
+---
+
+## Stack Tecnológico
+
+- **Core & API Framework:** Python 3.11, FastAPI, Pydantic, Uvicorn.
+- **Motor RAG & Vector Store:** Qdrant Client, FastEmbed, PyPDF, Groq API.
+- **Frontend Layer:** HTML5, Tailwind CSS, Lucide Icons, Fetch API.
+- **DevOps, Testing & Cloud:** Docker, GitHub Actions, Pytest, Render.
+
+---
+
+## Configuración y Despliegue Local
+
+### 1. Clonar el repositorio e instalar dependencias
+```bash
+git clone https://github.com/Oscar-Munoz-Garcia/asistente-estudio.git
 cd asistente-estudio
 python -m venv .venv
 
@@ -51,18 +84,37 @@ python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
-2. Configuración de Variables de EntornoCrear un archivo .env en la raíz del proyecto con la siguiente estructura:Fragmento de códigoAPI_TOKEN=tu_token_de_seguridad
+```
+
+### 2. Configuración de Variables de Entorno
+Crear un archivo `.env` en la raíz del proyecto con la siguiente estructura:
+```env
+API_TOKEN=tu_token_de_seguridad
 GROQ_API_KEY=tu_clave_de_groq
 UMBRAL_SIMILITUD=0.3
 MODO_BUSQUEDA=significado
 
 # Configuración opcional para Qdrant Cloud:
-# QDRANT_URL=[https://xxxxxxxx.aws.cloud.qdrant.io:6333](https://xxxxxxxx.aws.cloud.qdrant.io:6333)
+# QDRANT_URL=https://xxxxxxxx.aws.cloud.qdrant.io:6333
 # QDRANT_API_KEY=tu_clave_qdrant
-3. Ejecución del servidor de desarrolloBashuvicorn app.main:app --reload
-Acceso a la interfaz web local: http://127.0.0.1:8000/.Despliegue con DockerConstrucción de la imagen e inicio del contenedorBash# Construir imagen Docker
+```
+
+### 3. Ejecución del servidor de desarrollo
+```bash
+uvicorn app.main:app --reload
+```
+Acceso a la interfaz web local: `http://127.0.0.1:8000/`.
+
+---
+
+## Despliegue con Docker
+
+### Construcción de la imagen e inicio del contenedor
+```bash
+# Construir imagen Docker
 docker build -t asistente-estudio .
 
 # Ejecutar contenedor vinculando volumen para la persistencia de Qdrant
 docker run -d --name asistente -p 8001:8000 --env-file .env -v asistente-datos:/app/data asistente-estudio
-Acceso a la aplicación en contenedor: http://127.0.0.1:8001/.
+```
+Acceso a la aplicación en contenedor: `http://127.0.0.1:8001/`.
